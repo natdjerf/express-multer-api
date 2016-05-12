@@ -10,9 +10,12 @@ const fs = require('fs');
 // require filetype to read from buffer
 const fileType = require('file-type');
 
-
 // require aws functions in separate file
 const awsS3Upload = require('../lib/aws-s3-upload');
+
+// require mongoose to use Mongo
+const mongoose = require('../app/middleware/mongoose');
+const Upload = require('../app/models/upload');
 
 // ***Setting the variables for the promise:
 
@@ -27,6 +30,7 @@ const mimeType = (data) =>
 
 // set file to command line argument (or temporarily as '' for testing)
 let filename = process.argv[2] || '';
+let title = process.argv[3] || 'No Title';
 
 
 const readFile = (filename) =>
@@ -52,6 +56,13 @@ readFile(filename)
   return file;
 })
 .then(awsS3Upload)
-.then((awsS3response) =>
-  console.log(awsS3response))
-.catch(console.error);
+.then((s3response) => {
+  let upload = {
+    location: s3response.Location,
+    title: title
+  };
+    return Upload.create(upload);
+})
+.then(console.log)
+.catch(console.error)
+.then(() => mongoose.connection.close);
